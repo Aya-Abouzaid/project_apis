@@ -14,36 +14,43 @@ use Tymon\JWTAuth\Facades\JWTAuth;
 class AuthController extends Controller
 {
     use GeneralTrait;
-    public function login(Request $request){
+    public function login(Request $request)
+    {
+
         try {
-            //validation
             $rules = [
-                'username'=> "required|min:5",
-                "password"=>"required"
+                "email" => "required",
+                "password" => "required"
+
             ];
-            $messages = [
-                "required"=>"this filed is Required",
-                "username.min"=>"the user name must be longer than 5 characters long",
-            ];
+
             $validator = Validator::make($request->all(), $rules);
+
             if ($validator->fails()) {
                 $code = $this->returnCodeAccordingToInput($validator);
                 return $this->returnValidationError($code, $validator);
             }
-            // login
 
-            $credentials = $request->only(['username', 'password']);
-            $token = Auth::guard('admin-api')->attempt($credentials);
+            //login
+
+            $credentials = $request->only(['email', 'password']);
+
+            $token = Auth::guard('user-api')->attempt($credentials);  //generate token
+
             if (!$token)
-                return $this->returnError('E001', 'the login information is incorrect, try again');
+                return $this->returnError('E001', 'بيانات الدخول غير صحيحة');
+
+            $user = Auth::guard('user-api')->user();
+            $user ->api_token = $token;
             //return token
-            $msg = "you are loggin successfully";
-            return $this->returnData('token', $token , $msg);
+            return $this->returnData('user', $user);  //return json response
+
         } catch (Exception $ex) {
             return $this->returnError($ex->getCode(), $ex->getMessage());
-
         }
     }
+
+    // LOGOUT function
     public function logout(Request $request){
         $token = $request -> header('auth-token');
         if($token){
